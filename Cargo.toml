@@ -1,0 +1,18 @@
+[package]
+name = "sly_physics_xpbd"
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "A native physics engine for Bevy using xpbd"
+readme = "README.md"
+repository = "https://github.com/slyedoc/sly_physics_xpbd"
+
+[dependencies]
+bevy =  { version = "0.9.1" }
+bevy-inspector-egui = { version = "0.17" }
+iyes_loopless = { version = "0.9.1" }
+enum_dispatch = "0.3.8"
+
+[dev-dependencies]
+sly_camera_controller = { git = "https://github.com/slyedoc/sly_camera_controller", branch = "main" }
+fastrand = "1.9.0"
