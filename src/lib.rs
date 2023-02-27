@@ -1,52 +1,94 @@
 mod colliders;
 mod components;
 mod contacts;
+mod debug;
+mod intersect;
+mod math;
 mod phases;
 
-use bevy::{prelude::*, time::FixedTimestep};
+use bevy::{ecs::schedule::ShouldRun, prelude::*};
+use bevy_inspector_egui::prelude::*;
 use colliders::*;
 use components::*;
 use contacts::*;
 use phases::*;
+use prelude::PrevPos;
 
 pub mod prelude {
-    pub use crate::{colliders::*, components::*, contacts::*, PhysicsPlugin};
+    pub use crate::{colliders::*, components::*, contacts::*, debug::*, PhysicsPlugin};
 }
-
-pub const DELTA_TIME: f32 = 1. / 60.;
-pub const BOUNDS_EPS: f32 = 0.01;
 
 pub struct PhysicsPlugin {
     pub gravity: Vec3,
+    pub number_substeps: u32,
+    pub number_position_iterations: u32,
+    pub delta_time: f32,
+    pub k: f32,
 }
 
 impl Default for PhysicsPlugin {
     fn default() -> Self {
         Self {
-            gravity: Gravity::default().0,
+            gravity: Vec3::new(0., -9.81, 0.),
+            number_substeps: 20,
+            number_position_iterations: 1,
+            delta_time: 1. / 60.,
+            k: 2.0,
         }
     }
 }
-
-#[derive(Resource, Debug)]
-pub struct Gravity(pub Vec3);
-
-impl Default for Gravity {
-    fn default() -> Self {
-        Self(Vec3::new(0., -9.81, 0.))
-    }
+#[derive(Resource, InspectorOptions, Debug)]
+//#[reflect(Resource, InspectorOptions)]
+pub struct PhysicsConfig {
+    pub number_substeps: u32,
+    pub number_position_iterations: u32,
+    pub delta_time: f32,
+    pub sub_delta_time: f32, // h in the paper
+    #[inspector(min = 1.0)]
+    pub k: f32,
 }
 
-// #[derive(Resource, Default, Debug)]
-// pub struct DynamicContacts(pub Vec<(Entity, Entity, Vec3)>);
+#[derive(Resource, Debug, Default, Deref, DerefMut)]
+pub struct SubstepContacts(pub Vec<Contact>);
 
-// #[derive(Resource, Default, Debug)]
-// pub struct StaticContacts(pub Vec<(Entity, Entity, Vec3)>);
+#[derive(Resource, Debug, Deref, Default, DerefMut)]
+pub struct CollisionPairs(pub Vec<contacts::CollisionPair>);
+
+#[derive(Resource, Debug)]
+//#[reflect(Resource)]
+pub struct Gravity(pub Vec3);
+
+// This will be based on Algorith 2 (page 5) in https://github.com/matthias-research/pages/blob/master/publications/PBDBodies.pdf
+//  while simulating do
+//      CollectCollisionPairs();                                    broad phase
+//      ℎ ← Δ𝑡/numSubsteps;
+//      for numSubsteps do                                          intergrate phase
+//          for 𝑛 bodies and particles do
+//              xprev ← x;
+//              v ← v + ℎ fext /𝑚;
+//              x ← x + ℎ v;
+//              qprev ← q;
+//              𝜔 ← 𝜔 + ℎ I−1 (𝜏ext − (𝜔 × (I𝜔)));
+//              q ← q + ℎ 21 [𝜔 𝑥 , 𝜔 𝑦 , 𝜔 𝑧 , 0] q;
+//              q ← q/|q|;
+//          end
+//          for numPosIters do                                      solve positions phase
+//              SolvePositions(x1 , . . . x𝑛 , q1 , . . . q𝑛 );
+//          end
+//          for 𝑛 bodies and particles do                           update velocities phase
+//              v ← (x − xprev )/ℎ;
+//              Δq ← q qprev-1
+//              𝝎 ← 2[Δq 𝑥 , Δq 𝑦 , Δq 𝑧 ]/ℎ;
+//              𝝎 ← Δ𝑞 𝑤 ≥ 0 ? 𝝎 : −𝝎;
+//          end
+//          SolveVelocities(v1 , . . . v𝑛 , 𝜔1 , . . . 𝜔 𝑛 );       solve velocities phase
+//      end
+//  end
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, SystemLabel)]
 enum Step {
-    UpdateAABB,
-    BroadPhase,
+    Setup,
+    CollisionPairs,
     Integrate,
     SolvePositions,
     UpdateVelocities,
@@ -57,32 +99,64 @@ enum Step {
 struct FixedUpdateStage;
 impl Plugin for PhysicsPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(Gravity(self.gravity))
-            .add_event::<BroadContactStatic>()
-            .add_event::<BroadContactDynamic>()
-            .add_event::<ContactDynamic>()
-            .add_event::<ContactStatic>()            
+        app
+            // Register the resources
+            //.register_type::<PhysicsConfig>()
+            //.add_plugin(ResourceInspectorPlugin::<PhysicsConfig>::default())
+            //.register_type::<Gravity>()
+            // Register the components
+            .register_type::<Mass>()
+            .register_type::<InverseMass>()
+            .register_type::<Aabb>()
+            .register_type::<Restitution>()
+            .register_type::<Velocity>()
+            .register_type::<PreSolveVelocity>()
+            .register_type::<PrevPos>()
+            .register_type::<PrevRot>()
+            // Add Asset
             .add_asset::<Collider>()
+            // Add Resources
+            .insert_resource(Gravity(self.gravity))
+            .insert_resource(PhysicsConfig {
+                number_substeps: self.number_substeps,
+                number_position_iterations: self.number_position_iterations,
+                delta_time: self.delta_time,
+                sub_delta_time: self.delta_time / self.number_substeps as f32,
+                k: self.k,
+            })
+            .init_resource::<LoopState>()
+            .init_resource::<SubstepContacts>()
+            .init_resource::<CollisionPairs>()
+            // Add Events
+            //.add_event::<CollisionPair>()
+            //.add_event::<Contact>()
+            // Add Systems
             .add_stage_before(
                 CoreStage::Update,
                 FixedUpdateStage,
                 SystemStage::parallel()
-                    .with_run_criteria(FixedTimestep::step(DELTA_TIME as f64))
+                    .with_run_criteria(run_criteria)
                     .with_system_set(
                         SystemSet::new()
-                            .label(Step::UpdateAABB)
-                            .with_system(update_aabb)
-                            .with_system(update_aabb_static),
-                        
+                            .label(Step::Setup)
+                            .with_run_criteria(first_substep)
+                            .with_system(setup_prev_pos)
+                            .with_system(setup_inverse_mass_and_inverse_inertia_tensor)
+                            .with_system(update_aabb),
                     )
-                    .with_system(broad_phase.label(Step::BroadPhase).after(Step::UpdateAABB))
-                    .with_system(integrate.label(Step::Integrate).after(Step::BroadPhase))
+                    .with_system_set(
+                        SystemSet::new()
+                            .label(Step::CollisionPairs)
+                            .after(Step::Setup)
+                            .with_run_criteria(first_substep)
+                            .with_system(collision_pairs),
+                    )
+                    .with_system(integrate.label(Step::Integrate).after(Step::CollisionPairs))
                     .with_system_set(
                         SystemSet::new()
                             .label(Step::SolvePositions)
                             .after(Step::Integrate)
-                            .with_system(solve_pos)
-                            .with_system(solve_pos_statics),
+                            .with_system(solve_pos),
                     )
                     .with_system(
                         update_vel
@@ -93,90 +167,77 @@ impl Plugin for PhysicsPlugin {
                         SystemSet::new()
                             .label(Step::SolveVelocities)
                             .after(Step::UpdateVelocities)
-                            .with_system(solve_vel)
-                            .with_system(solve_vel_statics),
+                            .with_system(solve_vel),
                     ),
             );
     }
 }
 
-fn integrate(
-    mut query: Query<(
-        &mut Transform,
-        &mut PrevPos,
-        &mut Velocity,
-        &mut PreSolveVelocity,
-        &Mass,
-    )>,
-    gravity: Res<Gravity>,
-) {
-    for (mut trans, mut prev_pos, mut vel, mut pre_solve_vel, mass) in query.iter_mut() {
-        prev_pos.0 = trans.translation;
+#[derive(Resource)]
+pub struct LoopState {
+    pub accumulator: f32,
+    pub substepping: bool,
+    pub current_substep: u32,
+    pub has_added_time: bool,
+}
 
-        let gravitation_force = mass.0 * gravity.0;
-        let external_forces = gravitation_force;
-        vel.linear += DELTA_TIME * external_forces / mass.0;
-        trans.translation += DELTA_TIME * vel.linear;
-        pre_solve_vel.linear = vel.linear;
+impl Default for LoopState {
+    fn default() -> Self {
+        Self {
+            accumulator: 0.,
+            substepping: false,
+            current_substep: 0,
+            has_added_time: false,
+        }
     }
 }
 
-fn update_vel(mut query: Query<(&Transform, &PrevPos, &mut Velocity)>) {
-    for (trans, prev_pos, mut vel) in query.iter_mut() {
-        vel.linear = (trans.translation - prev_pos.0) / DELTA_TIME;
+fn run_criteria(
+    time: Res<Time>,
+    mut state: ResMut<LoopState>,
+    config: Res<PhysicsConfig>,
+) -> ShouldRun {
+    if !state.has_added_time {
+        state.has_added_time = true;
+        state.accumulator += time.delta_seconds();
+    }
+
+    if state.substepping {
+        state.current_substep += 1;
+
+        if state.current_substep < config.number_substeps {
+            return ShouldRun::YesAndCheckAgain;
+        } else {
+            // We finished a whole step
+            state.accumulator -= config.delta_time;
+            state.current_substep = 0;
+            state.substepping = false;
+        }
+    }
+
+    if state.accumulator >= config.delta_time {
+        state.substepping = true;
+        state.current_substep = 0;
+        ShouldRun::YesAndCheckAgain
+    } else {
+        state.has_added_time = false;
+        ShouldRun::No
     }
 }
 
-fn solve_vel(
-    query: Query<(
-        &mut Velocity,
-        &PreSolveVelocity,
-        &Mass,
-        &Restitution,
-    )>,
-    mut contacts: EventReader<ContactDynamic>,
-) {
-    for c in contacts.iter() {
-        let (
-            (mut vel_a, pre_solve_vel_a, mass_a, restitution_a),
-            (mut vel_b, pre_solve_vel_b, mass_b, restitution_b),
-        ) = unsafe {
-            // Ensure safety
-            assert!(c.entity_a != c.entity_b);
-            (
-                query.get_unchecked(c.entity_a).unwrap(),
-                query.get_unchecked(c.entity_b).unwrap(),
-            )
-        };
-        // Make sure velocities are reflected and restitution/friction calculated
-        let pre_solve_relative_vel = pre_solve_vel_a.linear - pre_solve_vel_b.linear;
-        let pre_solve_normal_vel = pre_solve_relative_vel.dot(c.normal);
-
-        let relative_vel = vel_a.linear - vel_b.linear;
-        let normal_vel = relative_vel.dot(c.normal);
-        // averaging restitution
-        let restitution = (restitution_a.0 + restitution_b.0) / 2.;
-
-        let w_a = 1. / mass_a.0;
-        let w_b = 1. / mass_b.0;
-        let w_sum = w_a + w_b;
-
-        vel_a.linear += c.normal * (-normal_vel - restitution * pre_solve_normal_vel) * w_a / w_sum;
-        vel_b.linear -= c.normal * (-normal_vel - restitution * pre_solve_normal_vel) * w_b / w_sum;
+fn first_substep(state: Res<LoopState>) -> ShouldRun {
+    if state.current_substep == 0 {
+        ShouldRun::Yes
+    } else {
+        ShouldRun::No
     }
 }
 
-fn solve_vel_statics(
-    mut dynamics: Query<(&mut Velocity, &PreSolveVelocity, &Restitution), With<Mass>>,
-    statics: Query<&Restitution, Without<Mass>>,    
-    mut contacts: EventReader<ContactStatic>,
-) {
-    for c in contacts.iter() {
-        let (mut vel_a, pre_solve_vel_a, restitution_a) = dynamics.get_mut(c.entity).unwrap();
-        let restitution_b = statics.get(c.static_entity).unwrap();
-        let pre_solve_normal_vel = pre_solve_vel_a.linear.dot(c.normal);
-        let normal_vel = vel_a.linear.dot(c.normal);
-        let restitution = (restitution_a.0 + restitution_b.0) / 2.;
-        vel_a.linear += c.normal * (-normal_vel - restitution * pre_solve_normal_vel);
+#[allow(dead_code)]
+fn last_substep(state: Res<LoopState>, config: Res<PhysicsConfig>) -> ShouldRun {
+    if state.current_substep == config.number_substeps - 1 {
+        ShouldRun::Yes
+    } else {
+        ShouldRun::No
     }
 }

@@ -10,12 +10,14 @@ fn main() {
         .add_plugin(HelperPlugin)
         // our physics plugin
         .add_plugin(PhysicsPlugin::default())
+        .add_plugin(PhysicsDebugPlugin)
+
         // local setup stuff
         .add_startup_system(helper::setup_camera)
-        .add_startup_system(setup)
+        .add_system_set(SystemSet::on_enter(helper::ResetState::Playing).with_system(setup))
         .add_system_set(
             SystemSet::new()
-                .with_run_criteria(FixedTimestep::step(1. / 40.))
+                .with_run_criteria(FixedTimestep::step(1. / 20.))
                 .with_system(spawn_marbles),
         )
         .add_system(despawn_marbles)
@@ -57,12 +59,10 @@ pub fn setup(
 
     commands
         .spawn(PbrBundle {
-            mesh: meshes.add(Mesh::from(shape::Icosphere {
-                radius,
-                subdivisions: 4,
-            })),
+            //mesh: meshes.add(Mesh::from(shape::UVSphere { radius, ..default() })),
+            mesh: meshes.add(Mesh::from(shape::Box::new(radius * 2., radius * 2., radius * 2.))),
             material: materials.add(StandardMaterial {
-                base_color: Color::rgb(0.1, 0.9, 0.1),
+                base_color: Color::DARK_GREEN,
                 ..default()
             }),
             transform: Transform {
@@ -71,8 +71,10 @@ pub fn setup(
             },
             ..default()
         })
-        .insert(PhysicsStaticBundle {
-            collider: colliders.add(Collider::new_sphere(radius)),
+        .insert(PhysicsBundle {
+            mode: PhysicsMode::Static,
+            //collider: colliders.add(Collider::new_sphere(radius)),
+            collider: colliders.add(Collider::new_box(radius * 2., radius * 2., radius * 2.)),
             ..default()
         })
         .insert(Name::new("Ground"));
@@ -81,10 +83,10 @@ pub fn setup(
 fn spawn_marbles(mut commands: Commands, marble_assets: Res<MarbleAssets>) {
     let pos = Vec3::new(
         fastrand::f32() - 0.5,
-        fastrand::f32() - 1.,
         fastrand::f32() - 0.5,
-    ) * 0.5
-        + Vec3::Y * 3.;
+        fastrand::f32() - 0.5,
+    ) * 5.0
+        + Vec3::Y * 10.;
     let vel = Vec3::new(fastrand::f32() - 0.5, fastrand::f32() - 0.5, 0.);
     commands
         .spawn(PbrBundle {

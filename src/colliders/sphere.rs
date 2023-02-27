@@ -1,4 +1,4 @@
-use crate::{components::*, BOUNDS_EPS};
+use crate::{components::*};
 use bevy::{math::vec3, prelude::*};
 
 use super::Collidable;
@@ -49,27 +49,28 @@ impl Collidable for Sphere {
         self.aabb
     }
 
-    fn get_world_aabb(&self, trans: &GlobalTransform, velocity: &Velocity, time: f32) -> Aabb {
-        let translation = trans.translation();
-        let mut aabb = Aabb {
-            mins: translation - self.radius,
-            maxs: translation + self.radius,
-        };
+    fn update_aabb(&self, aabb: &mut Aabb, trans: &Transform, velocity: &Velocity, factor: f32) {
+                
+        let margin = factor * velocity.linear.length();
+        let half_extends = Vec3::splat(self.radius + margin);
+        aabb.mins = trans.translation - half_extends;
+        aabb.maxs = trans.translation + half_extends;
+        
 
-        // expand by the linear velocity
-        let p1 = aabb.mins + velocity.linear * time;
-        aabb.expand_by_point(p1);
-        let p2 = aabb.maxs + velocity.linear * time;
-        aabb.expand_by_point(p2);
+        // // expand by the linear velocity
+        // let p1 = aabb.mins + velocity.linear * time;
+        // aabb.expand_by_point(p1);
+        // let p2 = aabb.maxs + velocity.linear * time;
+        // aabb.expand_by_point(p2);
 
-        // ex
+        // // ex
 
-        let p3 = aabb.mins - Vec3::splat(BOUNDS_EPS);
-        aabb.expand_by_point(p3);
-        let p4 = aabb.maxs + Vec3::splat(BOUNDS_EPS);
-        aabb.expand_by_point(p4);
+        // let p3 = aabb.mins - Vec3::splat(BOUNDS_EPS);
+        // aabb.expand_by_point(p3);
+        // let p4 = aabb.maxs + Vec3::splat(BOUNDS_EPS);
+        // aabb.expand_by_point(p4);
 
-        aabb
+        // aabb
     }
 
     fn get_support(&self, trans: &Transform, dir: Vec3, bias: f32) -> Vec3 {

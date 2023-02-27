@@ -1,19 +1,18 @@
 use bevy::prelude::*;
 
-use crate::{
-    components::{Aabb, PhysicsStatic},
-    contacts::*,
-};
+use crate::{components::*, contacts::*, colliders::*, CollisionPairs};
 
 // Sweep and Prune
 // The board phase is responsible for pruning the search space of possible collisions
 // I have tried different approaches, and I am sure I will try a few more
 // So far this simple approach has been the fastest
-pub fn broad_phase(
-    mut broad_dynamic_contacts: EventWriter<BroadContactDynamic>,
-    mut broad_static_contacts: EventWriter<BroadContactStatic>,
-    query: Query<(Entity, &Aabb, Option<&PhysicsStatic>)>,
+pub fn collision_pairs(
+    mut collision_pairs: ResMut<CollisionPairs>,
+    query: Query<(Entity, &Aabb, &PhysicsMode), (With<Handle<Collider>>, With<InverseMass>)>,
 ) {
+
+    collision_pairs.clear();
+
     // TODO: Yes, we are copying the array out here, only way to sort it
     // Ideally we would keep the array around, it should already near sorted
     let mut list = query.iter().collect::<Vec<_>>();
@@ -24,10 +23,10 @@ pub fn broad_phase(
 
     //let t1 = Instant::now();
     // Sweep the array for collisions
-    for (i, (a, aabb_a, static_a)) in list.iter().enumerate() {
+    for (i, (a, aabb_a, mode_a)) in list.iter().enumerate() {
         // Test collisions against all possible overlapping AABBs following current one
-        for (b, aabb_b, static_b) in list.iter().skip(i + 1) {
-            // Stop when tested AABBs are beyond the end of current AABB
+        for (b, aabb_b, mode_b) in list.iter().skip(i + 1) {
+            // Stop when tested AABBs are beyond the end of current AABB            
             if aabb_b.mins.y > aabb_a.maxs.y {
                 break;
             }
@@ -54,28 +53,15 @@ pub fn broad_phase(
                 continue;
             }
 
-
-            match (static_a, static_b) {
-                (None, None) => {
-                    broad_dynamic_contacts.send(BroadContactDynamic {
+            match (mode_a, mode_b) {
+                (PhysicsMode::Static, PhysicsMode::Static) => {
+                    // Both are static, do nothing
+                }
+                (_, _) => {
+                    collision_pairs.push(CollisionPair {
                         entity_a: *a,
                         entity_b: *b,
                     });
-                }
-                (None, Some(_)) => {
-                    broad_static_contacts.send(BroadContactStatic {
-                        entity: *a,
-                        static_entity: *b,
-                    });
-                }
-                (Some(_), None) => {
-                    broad_static_contacts.send(BroadContactStatic {
-                        entity: *b,
-                        static_entity: *a,
-                    });
-                }
-                (Some(_), Some(_)) => {
-                    // Both are static, do nothing
                 }
             }
         }
@@ -84,8 +70,8 @@ pub fn broad_phase(
 
 #[allow(dead_code)]
 fn cmp_x_axis(
-    a: &(Entity, &Aabb, Option<&PhysicsStatic>),
-    b: &(Entity, &Aabb, Option<&PhysicsStatic>),
+    a: &(Entity, &Aabb, &PhysicsMode),
+    b: &(Entity, &Aabb, &PhysicsMode),
 ) -> std::cmp::Ordering {
     // Sort on minimum value along either x, y, or z axis
     let min_a = a.1.mins.x;
@@ -101,8 +87,8 @@ fn cmp_x_axis(
 
 #[allow(dead_code)]
 fn cmp_y_axis(
-    a: &(Entity, &Aabb, Option<&PhysicsStatic>),
-    b: &(Entity, &Aabb, Option<&PhysicsStatic>),
+    a: &(Entity, &Aabb, &PhysicsMode),
+    b: &(Entity, &Aabb, &PhysicsMode),
 ) -> std::cmp::Ordering {
     // Sort on minimum value along either x, y, or z axis
     let min_a = a.1.mins.y;
@@ -118,8 +104,8 @@ fn cmp_y_axis(
 
 #[allow(dead_code)]
 fn cmp_z_axis(
-    a: &(Entity, Aabb, Option<&PhysicsStatic>),
-    b: &(Entity, Aabb, Option<&PhysicsStatic>),
+    a: &(Entity, &Aabb, &PhysicsMode),
+    b: &(Entity, &Aabb, &PhysicsMode),
 ) -> std::cmp::Ordering {
     // Sort on minimum value along either x, y, or z axis
     let min_a = a.1.mins.z;

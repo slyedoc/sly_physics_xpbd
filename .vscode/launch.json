@@ -1,0 +1,249 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in library 'sly_physics_xpbd'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--lib",
+                    "--package=sly_physics_xpbd"
+                ],
+                "filter": {
+                    "name": "sly_physics_xpbd",
+                    "kind": "lib"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug example 'different_masses'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--example=different_masses",
+                    "--package=sly_physics_xpbd"
+                ],
+                "filter": {
+                    "name": "different_masses",
+                    "kind": "example"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in example 'different_masses'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--example=different_masses",
+                    "--package=sly_physics_xpbd"
+                ],
+                "filter": {
+                    "name": "different_masses",
+                    "kind": "example"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug example 'stack'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--example=stack",
+                    "--package=sly_physics_xpbd"
+                ],
+                "filter": {
+                    "name": "stack",
+                    "kind": "example"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in example 'stack'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--example=stack",
+                    "--package=sly_physics_xpbd"
+                ],
+                "filter": {
+                    "name": "stack",
+                    "kind": "example"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug example 'collision_box_sphere'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--example=collision_box_sphere",
+                    "--package=sly_physics_xpbd"
+                ],
+                "filter": {
+                    "name": "collision_box_sphere",
+                    "kind": "example"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in example 'collision_box_sphere'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--example=collision_box_sphere",
+                    "--package=sly_physics_xpbd"
+                ],
+                "filter": {
+                    "name": "collision_box_sphere",
+                    "kind": "example"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug example 'marble_pour'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--example=marble_pour",
+                    "--package=sly_physics_xpbd"
+                ],
+                "filter": {
+                    "name": "marble_pour",
+                    "kind": "example"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in example 'marble_pour'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--example=marble_pour",
+                    "--package=sly_physics_xpbd"
+                ],
+                "filter": {
+                    "name": "marble_pour",
+                    "kind": "example"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug example 'collision_box_box'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--example=collision_box_box",
+                    "--package=sly_physics_xpbd"
+                ],
+                "filter": {
+                    "name": "collision_box_box",
+                    "kind": "example"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in example 'collision_box_box'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--example=collision_box_box",
+                    "--package=sly_physics_xpbd"
+                ],
+                "filter": {
+                    "name": "collision_box_box",
+                    "kind": "example"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug example 'collision_sphere_sphere'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--example=collision_sphere_sphere",
+                    "--package=sly_physics_xpbd"
+                ],
+                "filter": {
+                    "name": "collision_sphere_sphere",
+                    "kind": "example"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in example 'collision_sphere_sphere'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--example=collision_sphere_sphere",
+                    "--package=sly_physics_xpbd"
+                ],
+                "filter": {
+                    "name": "collision_sphere_sphere",
+                    "kind": "example"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}

@@ -11,19 +11,32 @@ use self::{
 
 pub struct HelperPlugin;
 
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+pub enum ResetState {
+    Playing,
+    Reset,
+}
+
 impl Plugin for HelperPlugin {
     fn build(&self, app: &mut App) {
         app
+            .add_state(ResetState::Playing)
             .add_plugin(WorldInspectorPlugin)
             .init_resource::<FontAssets>()
             .init_resource::<ButtonColors>()
             .add_plugin(CameraControllerPlugin)
-            .add_plugin(TextOverlayPlugin);
+            .add_plugin(TextOverlayPlugin)
+            .add_system_set(
+                SystemSet::on_update(ResetState::Playing)
+                    .with_system(reset_listen)
+            )
+            .add_system_set(
+                SystemSet::on_update(ResetState::Reset)
+                    .with_system(reset)
+            )
+            ;
     }
 }
-
-#[derive(Component)]
-pub struct Keep;
 
 pub fn setup_camera(mut commands: Commands) {
     // light
@@ -46,4 +59,33 @@ pub fn setup_camera(mut commands: Commands) {
         // Add our controller
             .insert(CameraController::default())
         .insert(Keep);
+}
+
+
+// Theses system is used to reset the game when the user presses the 'r' key.
+#[derive(Component)]
+pub struct Keep;
+
+pub fn reset(
+    mut commands: Commands, 
+    query: Query<Entity, (Without<Keep>, Without<Parent>)>,
+    mut app_state: ResMut<State<ResetState>>
+) {
+    for e in query.iter() {
+        commands.entity(e).despawn();
+    }
+    app_state.set(ResetState::Playing).unwrap();    
+}
+
+pub fn reset_listen(
+    mut keys: ResMut<Input<KeyCode>>,
+    mut app_state: ResMut<State<ResetState>>
+) {
+    if keys.just_pressed(KeyCode::R) {
+        if app_state.current() == &ResetState::Reset {
+            return;
+        }
+        app_state.set(ResetState::Reset).unwrap();        
+        keys.reset(KeyCode::R);
+    }
 }

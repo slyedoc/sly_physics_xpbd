@@ -17,6 +17,13 @@ impl Default for Aabb {
     }
 }
 
+impl Aabb {
+    pub fn clear(&mut self) {
+        self.mins = Vec3::splat(std::f32::MAX);
+        self.maxs = Vec3::splat(std::f32::MIN);        
+    }
+}
+
 impl Add<Vec3> for Aabb {
     type Output = Self;
     fn add(self, pt: Vec3) -> Self::Output {

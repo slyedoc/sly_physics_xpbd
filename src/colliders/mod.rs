@@ -21,8 +21,8 @@ impl Collider {
         Collider::Sphere(Sphere::new(radius))
     }
 
-    pub fn new_box(size: Vec3) -> Self {
-        Collider::Box(Box::new(size))
+    pub fn new_box(x_length: f32, y_length: f32, z_length: f32) -> Self {
+        Collider::Box(Box::new(Vec3::new(x_length, y_length, z_length)))
     }
 }
 
@@ -35,9 +35,11 @@ impl Default for Collider {
 #[enum_dispatch(Collider)]
 pub trait Collidable {
     fn get_center_of_mass(&self) -> Vec3;
+    
+    // See https://en.wikipedia.org/wiki/List_of_moments_of_inertiahttps://en.wikipedia.org/wiki/List_of_moments_of_inertia
     fn get_inertia_tensor(&self) -> Mat3;
     fn get_aabb(&self) -> Aabb;
-    fn get_world_aabb(&self, trans: &GlobalTransform, velocity: &Velocity, time: f32) -> Aabb;
+    fn update_aabb(&self, aabb: &mut Aabb, trans: &Transform, velocity: &Velocity, factor: f32);
     fn get_support(&self, trans: &Transform, dir: Vec3, bias: f32) -> Vec3;
     fn fastest_linear_speed(&self, angular_velocity: Vec3, dir: Vec3) -> f32;
 

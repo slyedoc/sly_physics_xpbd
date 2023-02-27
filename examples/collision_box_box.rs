@@ -25,55 +25,49 @@ pub fn setup(
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut colliders: ResMut<Assets<Collider>>,
 ) {
-    let mesh = meshes.add(Mesh::from(shape::Icosphere {
-        radius: 0.5,
-        subdivisions: 4,
-    }));
+    let mesh = meshes.add(Mesh::from(shape::Box::new(1., 1., 1.)));
 
-    let collider = colliders.add(Collider::new_sphere(0.5));
+    let collider = colliders.add(Collider::new_box(1., 1., 1.));
 
-    let white = materials.add(StandardMaterial {
+    let mat = materials.add(StandardMaterial {
         base_color: Color::WHITE,
         unlit: true,
         ..Default::default()
     });
 
-    // Left particle
+    // Left sphere
     commands
         .spawn(PbrBundle {
             mesh: mesh.clone(),
-            material: white.clone(),
+            material: mat.clone(),
             transform: Transform::from_translation(Vec3::new(-2., 0., 0.)),
-            ..default()
-            
+            ..Default::default()
         })
         .insert(PhysicsBundle {
-            collider: collider.clone(),
             velocity: Velocity {
                 linear: Vec3::new(2., 0., 0.),
                 ..default()
             },
-            mass: Mass(3.),
+            collider: collider.clone(),
             ..default()
-        })                
+        })
         .insert(Name::new("P1"));
 
-    // Right particle
+    // Right sphere
     commands
         .spawn(PbrBundle {
             mesh: mesh.clone(),
-            material: white.clone(),
+            material: mat.clone(),
             transform: Transform::from_translation(Vec3::new(2., 0., 0.)),
             ..Default::default()
         })
         .insert(PhysicsBundle {
-            collider: collider.clone(),
             velocity: Velocity {
                 linear: Vec3::new(-2., 0., 0.),
                 ..default()
             },
-            mass: Mass(1.),
+            collider: collider.clone(),
             ..default()
-        })        
+        })
         .insert(Name::new("P2"));
 }

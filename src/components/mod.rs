@@ -2,16 +2,18 @@ mod aabb;
 pub use aabb::Aabb;
 use bevy::prelude::*;
 
-use crate::{colliders::Collider, DELTA_TIME};
+use crate::{colliders::Collider};
 
-
-#[derive(Component, Debug, Default)]
+#[derive(Component, Reflect, Debug, Default)]
+#[reflect(Component)]
 pub struct PrevPos(pub Vec3);
 
-#[derive(Component, Debug, Default)]
-pub struct PrevRot(pub Vec3);
+#[derive(Component,Reflect, Debug, Default)]
+#[reflect(Component)]
+pub struct PrevRot(pub Quat);
 
-#[derive(Component, Debug)]
+#[derive(Component, Reflect, Debug)]
+#[reflect(Component)]
 pub struct Mass(pub f32);
 
 impl Default for Mass {
@@ -20,21 +22,35 @@ impl Default for Mass {
     }
 }
 
-#[derive(Component, Debug, Default)]
+#[derive(Component,Reflect, Debug, Deref, DerefMut)]
+#[reflect(Component)]
+pub struct InverseMass(pub f32);
+
+impl Default for InverseMass {
+    fn default() -> Self {
+        Self(1.) // Default to 1 kg
+    }
+}
+
+
+#[derive(Component, Reflect, Debug, Default)]
+#[reflect(Component)]
 pub struct Velocity {
     pub linear: Vec3,
     #[allow(dead_code)]
     pub angular: Vec3,
 }
 
-#[derive(Component, Debug, Default)]
+#[derive(Component, Reflect, Debug, Default)]
+#[reflect(Component)]
 pub struct PreSolveVelocity {
     pub(crate) linear: Vec3,
     #[allow(dead_code)]
     pub(crate) angular: Vec3,
 }
 
-#[derive(Component, Debug)]
+#[derive(Component, Reflect, Debug)]
+#[reflect(Component)]
 pub struct Restitution(pub f32);
 
 impl Default for Restitution {
@@ -43,26 +59,36 @@ impl Default for Restitution {
     }
 }
 
-#[derive(Bundle, Default)]
-pub struct PhysicsBundle {    
-    pub prev_pos: PrevPos,    
-    pub prev_rot: PrevRot,
-    pub mass: Mass,
-    pub aabb: Aabb,
-    pub collider: Handle<Collider>,
-    pub velocity: Velocity,
-    pub pre_solve_velocity: PreSolveVelocity,
-    pub restitution: Restitution,
+#[derive(Component, Reflect, Debug, Default)]
+#[reflect(Component)]
+pub struct InverseInertiaTensor(pub Mat3);
+
+#[derive(Component, Reflect, Debug, PartialEq, Eq)]
+#[reflect(Component)]
+pub enum PhysicsMode {
+    Dynamic,
+    Static,
 }
 
-// marker component
-#[derive(Component, Default, Debug)]
-pub struct PhysicsStatic;
+impl Default for PhysicsMode {
+    fn default() -> Self {
+        Self::Dynamic
+    }
+}
 
 #[derive(Bundle, Default)]
-pub struct PhysicsStaticBundle {
-    pub aabb: Aabb,
+pub struct PhysicsBundle {    
+    pub mode: PhysicsMode,
+    pub mass: Mass,    
     pub collider: Handle<Collider>,
+    pub velocity: Velocity,    
     pub restitution: Restitution,
-    pub physics_static: PhysicsStatic,
+
+    // Should not be set by user
+    pub inverse_mass: InverseMass,
+    pub inverse_inertia_tensor: InverseInertiaTensor,
+    pub aabb: Aabb,
+    pub prev_pos: PrevPos,
+    pub prev_rot: PrevRot,
+    pub pre_solve_velocity: PreSolveVelocity,
 }

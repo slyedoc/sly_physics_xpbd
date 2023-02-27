@@ -1,11 +1,12 @@
 use bevy::{math::vec3, prelude::*};
 
-use crate::{Ray, BOUNDS_EPS, components::*};
+use crate::{Ray, components::*};
 
 use super::{fastest_linear_speed, find_support_point, Collidable};
 
 #[derive(Debug)]
 pub struct Box {
+    pub half_size: Vec3,
     pub size: Vec3,
     pub verts: Vec<Vec3>,
     pub center_of_mass: Vec3,
@@ -52,6 +53,7 @@ impl Box {
         let inertia_tensor = tensor + pat_tensor;
 
         Box {
+            half_size,
             size,
             verts: vec![
                 Vec3::new(-half_size.x, -half_size.y, -half_size.z),
@@ -83,25 +85,31 @@ impl Collidable for Box {
         self.aabb
     }
 
-    fn get_world_aabb(&self, trans: &GlobalTransform, velocity: &Velocity, time: f32) -> Aabb {
-        let mut aabb = Aabb::default();
-        for pt in &self.verts {
-            aabb.expand_by_point(trans.transform_point(*pt));
-        }
-        // expand by the linear velocity
-        let p1 = aabb.mins + velocity.linear * time;
-        aabb.expand_by_point(p1);
-        let p2 = aabb.maxs + velocity.linear * time;
-        aabb.expand_by_point(p2);
+    fn update_aabb(&self, aabb: &mut Aabb, trans: &Transform, velocity: &Velocity, factor: f32) {
+        aabb.clear();
+        
+        let margin = factor * velocity.linear.length();
+        let half_extends = self.half_size + Vec3::splat( margin);
+         aabb.mins = trans.translation - half_extends;
+         aabb.maxs = trans.translation + half_extends;
+        // for pt in &self.verts {
+        //      aabb.expand_by_point(trans.transform_point(*pt));
+        // }
+        // let margin = factor * velocity.linear.length();
 
-        // ex
 
-        let p3 = aabb.mins - Vec3::splat(BOUNDS_EPS);
-        aabb.expand_by_point(p3);
-        let p4 = aabb.maxs + Vec3::splat(BOUNDS_EPS);
-        aabb.expand_by_point(p4);
+        // // expand by the linear velocity
+        // let p1 = aabb.mins + velocity.linear * factor;
+        // aabb.expand_by_point(p1);
+        // let p2 = aabb.maxs + velocity.linear * factor;
+        // aabb.expand_by_point(p2);
 
-        aabb
+        // let p3 = aabb.mins - Vec3::splat(BOUNDS_EPS);
+        // aabb.expand_by_point(p3);
+        // let p4 = aabb.maxs + Vec3::splat(BOUNDS_EPS);
+        //  aabb.expand_by_point(p4);
+
+        // aabb
     }
 
     fn get_support(&self, trans: &Transform, dir: Vec3, bias: f32) -> Vec3 {
