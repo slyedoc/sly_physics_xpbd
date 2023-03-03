@@ -8,7 +8,6 @@ pub struct Sphere {
     pub radius: f32,
     aabb: Aabb,
     center_of_mass: Vec3,
-    inertia_tensor: Mat3,
 }
 
 impl Default for Sphere {
@@ -20,18 +19,14 @@ impl Default for Sphere {
 impl Sphere {
     pub fn new(radius: f32) -> Self {
         let aabb = Aabb {
-            mins: vec3(-radius, -radius, -radius),
-            maxs: vec3(radius, radius, radius),
+            mins: Vec3::splat(-radius),
+            maxs: Vec3::splat(radius),
         };
-
-        let i = 2.0 * radius * radius / 5.0;
-        let inertia_tensor = Mat3::from_diagonal(Vec3::splat(i));
 
         Sphere {
             radius,
             aabb,
             center_of_mass: vec3(0.0, 0.0, 0.0),
-            inertia_tensor,
         }
     }
 }
@@ -41,8 +36,9 @@ impl Collidable for Sphere {
         self.center_of_mass
     }
 
-    fn get_inertia_tensor(&self) -> Mat3 {
-        self.inertia_tensor
+    fn get_inertia_tensor(&self, mass: f32) -> Mat3 {
+        let i = (2.0 / 5.0) * mass * self.radius * self.radius;
+        return Mat3::from_diagonal(Vec3::splat(i));        
     }
 
     fn get_aabb(&self) -> Aabb {
@@ -53,6 +49,7 @@ impl Collidable for Sphere {
                 
         let margin = factor * velocity.linear.length();
         let half_extends = Vec3::splat(self.radius + margin);
+        
         aabb.mins = trans.translation - half_extends;
         aabb.maxs = trans.translation + half_extends;
         

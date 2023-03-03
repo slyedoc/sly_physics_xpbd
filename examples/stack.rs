@@ -10,7 +10,7 @@ fn main() {
         .add_plugin(HelperPlugin)
         // our physics plugin
         .add_plugin(PhysicsPlugin::default())
-        .add_plugin(PhysicsDebugPlugin)
+        //.add_plugin(PhysicsDebugPlugin)
         // local setup stuff
         .add_startup_system(helper::setup_camera)
         .add_system_set(SystemSet::on_enter(helper::ResetState::Playing).with_system(setup))
@@ -53,7 +53,7 @@ pub fn setup(
         .insert(Name::new("Ground"));
 
     // stack
-    let shape = Shape::Box;
+    let shape = Shape::Sphere;
     let size = 1.0;
     let count = 10;
 

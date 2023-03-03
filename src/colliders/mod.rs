@@ -36,8 +36,8 @@ impl Default for Collider {
 pub trait Collidable {
     fn get_center_of_mass(&self) -> Vec3;
     
-    // See https://en.wikipedia.org/wiki/List_of_moments_of_inertiahttps://en.wikipedia.org/wiki/List_of_moments_of_inertia
-    fn get_inertia_tensor(&self) -> Mat3;
+    // See https://en.wikipedia.org/wiki/List_of_moments_of_inertia
+    fn get_inertia_tensor(&self, mass: f32) -> Mat3;
     fn get_aabb(&self) -> Aabb;
     fn update_aabb(&self, aabb: &mut Aabb, trans: &Transform, velocity: &Velocity, factor: f32);
     fn get_support(&self, trans: &Transform, dir: Vec3, bias: f32) -> Vec3;

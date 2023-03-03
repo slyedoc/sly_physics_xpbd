@@ -9,6 +9,9 @@ pub fn integrate(
         &mut Velocity,
 
         &InverseMass,
+        &InertiaTensor,
+        &InverseInertiaTensor,
+        &PhysicsMode,
         &Handle<Collider>,
     )>,
     gravity: Res<Gravity>,
@@ -19,13 +22,20 @@ pub fn integrate(
         mut trans,
         mut prev_pos,
         mut prev_rot,
-        mut vel,
-
+        mut vel,        
         inv_mass,
+        inertia_tensor,
+        inv_inertia_tensor,
+        mode,
         collider_handle,
     ) in query.iter_mut()
     {
+        if mode == &PhysicsMode::Static {
+            continue;
+        }
+
         // position
+        
         prev_pos.0 = trans.translation;
         prev_rot.0 = trans.rotation;
 
@@ -38,12 +48,9 @@ pub fn integrate(
         
 
         // rotation
-        
         let collider = colliders.get(collider_handle).unwrap();
         
-        let inertia_tensor = collider.get_inertia_tensor();
-        let inv_inertia_tensor = inertia_tensor.inverse();
-        let change = config.sub_delta_time * inv_inertia_tensor * (external_torque - vel.angular.cross( inertia_tensor * vel.angular));        
+        let change = config.sub_delta_time * inv_inertia_tensor.0 * (external_torque - vel.angular.cross( inertia_tensor.0 * vel.angular));        
         vel.angular += change;
 
         // USE_QUATERNIONS_LINEARIZED_FORMULAS

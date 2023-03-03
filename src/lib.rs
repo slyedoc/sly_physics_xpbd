@@ -15,7 +15,9 @@ use phases::*;
 use prelude::PrevPos;
 
 pub mod prelude {
-    pub use crate::{colliders::*, components::*, contacts::*, debug::*, PhysicsPlugin};
+    pub use crate::{
+        colliders::*, components::*, contacts::*, debug::*, PhysicsBundle, PhysicsPlugin,
+    };
 }
 
 pub struct PhysicsPlugin {
@@ -37,6 +39,25 @@ impl Default for PhysicsPlugin {
         }
     }
 }
+
+#[derive(Bundle, Default)]
+pub struct PhysicsBundle {
+    pub mode: PhysicsMode,
+    pub mass: Mass,
+    pub collider: Handle<Collider>,
+    pub velocity: Velocity,
+    pub restitution: Restitution,
+
+    // Should not be set by user
+    pub inverse_mass: InverseMass,
+    pub inertia_tensor: InertiaTensor,
+    pub inverse_inertia_tensor: InverseInertiaTensor,
+    pub aabb: Aabb,
+    pub prev_pos: PrevPos,
+    pub prev_rot: PrevRot,
+    pub pre_solve_velocity: PreSolveVelocity,
+}
+
 #[derive(Resource, InspectorOptions, Debug)]
 //#[reflect(Resource, InspectorOptions)]
 pub struct PhysicsConfig {
@@ -107,6 +128,8 @@ impl Plugin for PhysicsPlugin {
             // Register the components
             .register_type::<Mass>()
             .register_type::<InverseMass>()
+            .register_type::<InertiaTensor>()
+            .register_type::<InverseInertiaTensor>()
             .register_type::<Aabb>()
             .register_type::<Restitution>()
             .register_type::<Velocity>()
@@ -141,7 +164,7 @@ impl Plugin for PhysicsPlugin {
                             .label(Step::Setup)
                             .with_run_criteria(first_substep)
                             .with_system(setup_prev_pos)
-                            .with_system(setup_inverse_mass_and_inverse_inertia_tensor)
+                            .with_system(setup_mass_and_inertia)
                             .with_system(update_aabb),
                     )
                     .with_system_set(

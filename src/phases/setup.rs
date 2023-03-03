@@ -18,24 +18,38 @@ pub fn setup_prev_pos(
     }
 }
 
-pub fn setup_inverse_mass_and_inverse_inertia_tensor(
-    mut query: Query<(&mut Mass, &mut InverseMass,  &mut InverseInertiaTensor,  &Handle<Collider>, &PhysicsMode), Changed<Mass>>,
+pub fn setup_mass_and_inertia(
+    mut query: Query<
+        (
+            &mut Mass,
+            &mut InverseMass,
+            &mut InertiaTensor,
+            &mut InverseInertiaTensor,
+            &Handle<Collider>,
+            &PhysicsMode,
+        ),
+        Changed<Mass>,
+    >,
     colliders: Res<Assets<Collider>>,
 ) {
     // setup inverse mass and mass
-    for (mut mass, mut inv_mass, mut inv_inertia_tensor, collider_handle, option) in query.iter_mut() {
+    for (mut mass, mut inv_mass, mut inertia_tensor, mut inv_inertia_tensor, collider_handle, option) in
+        query.iter_mut()
+    {
+        let collider = colliders.get(collider_handle).unwrap();
         match option {
             PhysicsMode::Dynamic => {
                 inv_mass.0 = 1. / mass.0;
+                inertia_tensor.0 = collider.get_inertia_tensor(mass.0);
             }
             PhysicsMode::Static => {
-                mass.0 = f32::INFINITY;
+                mass.0 = f32::INFINITY;                
                 inv_mass.0 = 0.;
             }
         }
-        let collider = colliders.get(collider_handle).unwrap(); 
-        let inertia_tensor = collider.get_inertia_tensor();       
-        inv_inertia_tensor.0 = inertia_tensor.inverse() * inv_mass.0;
+
+        
+        inv_inertia_tensor.0 = inertia_tensor.inverse();
     }
 }
 

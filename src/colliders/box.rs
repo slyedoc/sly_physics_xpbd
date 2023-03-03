@@ -9,9 +9,8 @@ pub struct Box {
     pub half_size: Vec3,
     pub size: Vec3,
     pub verts: Vec<Vec3>,
-    pub center_of_mass: Vec3,
+    pub center_of_mass: Vec3,    
     pub aabb: Aabb,
-    pub inertia_tensor: Mat3,
 }
 impl Default for Box {
     fn default() -> Self {
@@ -27,30 +26,6 @@ impl Box {
             maxs: half_size,
         };
 
-        // inertia tensor for box centered around zero
-        let d = aabb.maxs - aabb.mins;
-        let dd = d * d;
-        let diagonal = Vec3::new(dd.y + dd.z, dd.x + dd.z, dd.x + dd.y) / 12.0;
-        let tensor = Mat3::from_diagonal(diagonal);
-
-        // now we need to use the parallel axis theorem to get the ineria tensor for a box that is
-        // not centered around the origin
-
-        let cm = (aabb.maxs + aabb.mins) * 0.5;
-
-        // the displacement from the center of mass to the origin
-        let r = -cm;
-        let r2 = r.length_squared();
-
-        let pat_tensor = Mat3::from_cols(
-            Vec3::new(r2 - r.x * r.x, r.x * r.y, r.x * r.z),
-            Vec3::new(r.y * r.x, r2 - r.y * r.y, r.y * r.z),
-            Vec3::new(r.z * r.x, r.z * r.y, r2 - r.z * r.z),
-        );
-
-        // now we need to add the centre of mass tensor and the parallel axis theorem tensor
-        // together
-        let inertia_tensor = tensor + pat_tensor;
 
         Box {
             half_size,
@@ -67,7 +42,6 @@ impl Box {
             ],
             center_of_mass: vec3(0.0, 0.0, 0.0),
             aabb,
-            inertia_tensor,
         }
     }
 }
@@ -77,8 +51,11 @@ impl Collidable for Box {
         self.center_of_mass
     }
 
-    fn get_inertia_tensor(&self) -> Mat3 {
-        self.inertia_tensor
+    fn get_inertia_tensor(&self, mass: f32) -> Mat3 {
+                
+        let dd = self.size * self.size;
+        let diagonal = Vec3::new(dd.y + dd.z, dd.x + dd.z, dd.x + dd.y) * mass / 12.0;
+        return Mat3::from_diagonal(diagonal);
     }
 
     fn get_aabb(&self) -> Aabb {

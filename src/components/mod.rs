@@ -59,7 +59,11 @@ impl Default for Restitution {
     }
 }
 
-#[derive(Component, Reflect, Debug, Default)]
+#[derive(Component, Reflect, Debug, Default, Deref, DerefMut)]
+#[reflect(Component)]
+pub struct InertiaTensor(pub Mat3);
+
+#[derive(Component, Reflect, Debug, Default, Deref, DerefMut)]
 #[reflect(Component)]
 pub struct InverseInertiaTensor(pub Mat3);
 
@@ -76,19 +80,3 @@ impl Default for PhysicsMode {
     }
 }
 
-#[derive(Bundle, Default)]
-pub struct PhysicsBundle {    
-    pub mode: PhysicsMode,
-    pub mass: Mass,    
-    pub collider: Handle<Collider>,
-    pub velocity: Velocity,    
-    pub restitution: Restitution,
-
-    // Should not be set by user
-    pub inverse_mass: InverseMass,
-    pub inverse_inertia_tensor: InverseInertiaTensor,
-    pub aabb: Aabb,
-    pub prev_pos: PrevPos,
-    pub prev_rot: PrevRot,
-    pub pre_solve_velocity: PreSolveVelocity,
-}
